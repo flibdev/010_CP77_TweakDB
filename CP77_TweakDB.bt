@@ -1,0 +1,158 @@
+//------------------------------------------------------------------------------
+//--- 010 Editor v11.0.1 Binary Template
+//
+//      File: CP77_TweakDB.bt
+//   Authors: flib
+//   Version: 0.1
+//   Purpose: For reading the Cyberpunk 2077 TweakDB binary
+//  Category: Modding
+// File Mask: *.bin
+//  ID Bytes: 47 DB B1 0B
+//   History:
+//------------------------------------------------------------------------------
+
+LittleEndian();
+DisplayFormatDecimal();
+
+#include <CP77_Helpers.bt>
+#include <CP77_RTTI_Types.bt>
+
+
+typedef struct {
+    uint32  magic <format=hex>;
+    uint32  blobVersion;
+    uint32  parserVersion;
+    uint32  recordsChecksum <format=hex>;
+
+    uint32  flatsOffset     <format=hex>;
+    uint32  recordsOffset   <format=hex>;
+    uint32  queriesOffset   <format=hex>;
+    uint32  groupTagsOffset <format=hex>;
+} HEADER;
+
+typedef struct {
+    union {
+        uint64  value <format=hex>;
+        struct {
+            uint32  nameHash <format=hex>;
+            ubyte   nameLength;
+            ubyte   offset[3];
+        } composite;
+    } id;
+} TWEAKDBID;
+
+
+
+typedef struct {
+    uint64 typeHash <hidden=true>;
+    uint32 count <format=decimal>;
+
+    local string name = GetNameFromTypeHash(typeHash);
+    local int size    = GetSizeFromTypeHash(typeHash);
+} FLAT_TYPE <read=FlatTypeName, name="Flat Type">;
+
+string FlatTypeName(FLAT_TYPE &flats) {
+    local char buffer[256];
+    SPrintf(buffer, "%s [%d]", flats.name, flats.count);
+    return buffer;
+}
+
+
+typedef struct {
+    local int length = ReadLengthPrefix();
+    char str[length];
+} FLAT_TYPE_STRING <read=FlatTypeStringName>;
+    string FlatTypeStringName(FLAT_TYPE_STRING &f) { return f.str; }
+
+typedef struct (FLAT_TYPE &type) {
+    local uint64 typeHash = type.typeHash;
+    local string typeName = type.name;
+    local int    typeSize = type.size;
+
+    uint32 count <format=decimal>;
+    local uint32 i = 0;
+
+    for (i = 0; i < count; i++) {
+        switch (typeName) {
+            case "String":
+                FLAT_TYPE_STRING value <name="String">;
+                break;
+            default:
+                Exit(0);
+        }
+    }
+
+} FLAT_VALUES <read=FlatValuesName, name="Flat Values">;
+
+string FlatValuesName(FLAT_VALUES &flats) {
+    local char buffer[256];
+    SPrintf(buffer, "%s [%d]", flats.typeName, flats.count);
+    return buffer;
+}
+
+
+typedef struct {
+    uint32 flatTypesCount;
+
+    struct {
+        FLAT_TYPE types[flatTypesCount] <optimize=false>;
+    } FlatTypes;
+
+    local int i;
+    for(i = 0; i < flatTypesCount; i++) {
+        FLAT_VALUES flats(FlatTypes.types[i]) <optimize=false>;
+    }
+
+
+    // [0] Flat Values: count=13322
+    // 13322 = 0x0000340A @ offset  0:002C
+    // Strings
+    // [0] Flat Keys: count=80120
+    // 80120 = F8 38 01 00 @ offset  5:7D74
+
+
+    // [1] Flat Values: count=36
+    //    36 = 24 00 00 00
+    // Quaternions
+    // [1] Flat Keys: count=36
+    //    36 = 24 00 00 00
+
+
+    // [2] Flat Values: count=54
+    //    54 = 36 00 00 00
+    // array:Bool
+    // [2] Flat Keys: count=6371
+    //  6371 = E3 18 00 00 @ offset 12:DA70
+
+
+    // [3] Flat Values: count=5381
+    //  5381 = 05 15 00 00 @ offset 14:08A4
+    // array:CName (tags mostly)
+    // [3] Flat Keys: count=58296
+    // 58296 = B8 E3 00 00 @ offset 1A:D8EA
+
+
+    // [4] Flat Values: count=3179
+    //  3179 = 6B 0C 00 00 @ offset ?
+    // array:Int32
+    // [4] Flat Keys: count=8372
+    //  8372 = B4 20 00 00
+
+
+    // [5] Flat Values: count=806
+    //   806 = 26 03 00 00
+    // array:raRef:CResource
+    // [5] Flat Keys: count=14820
+
+
+} FLATS;
+
+
+
+
+struct {
+    HEADER header;
+
+    FSeek(startof(this)+header.flatsOffset);
+    FLATS flats;
+} TweakDB;

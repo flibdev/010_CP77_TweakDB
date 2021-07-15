@@ -1,0 +1,36 @@
+//------------------------------------------------------------------------------
+//--- 010 Editor v11.0.1 Binary Template
+//
+//      File: CP77_Helpers
+//   Authors: flib
+//   Purpose: Helper functions for reading CP77 data
+//------------------------------------------------------------------------------
+
+int ReadLengthPrefix() {
+    local ubyte b1 = ReadUByte();
+    FSkip(1);
+
+    if (b1 == 0x00 || b1 == 0x80)
+        return 0;
+
+    // Most significant bit: Should use wide charset
+    // Currently being ignored
+    local ubyte wide = ~(b1 & 0b10000000);
+    // Next bit: does size exceed 6bits
+    local ubyte next = b1 & 0b01000000;
+    local int   size = b1 & 0b00111111;
+    local int offset = 6;
+
+    local ubyte b = 0;
+
+    while (next > 0) {
+        b = ReadUByte();
+        FSkip(1);
+        next = b & 0b10000000;
+        size |= (b & 0b01111111) << offset;
+        offset += 7;
+    }
+
+    return size;
+}
+

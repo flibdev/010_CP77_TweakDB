@@ -1,0 +1,244 @@
+//------------------------------------------------------------------------------
+//--- 010 Editor v11.0.1 Binary Template
+//
+//      File: CP77_RTTI_Types
+//   Authors: flib
+//   Purpose: Lookup functions for CP77 Types from their CName hashes
+//------------------------------------------------------------------------------
+
+typedef struct {
+    uint64      hash;
+    string      name;
+    int         size;
+} RTTI_TYPE;
+
+local const uint rttiTypesTotal = 52;
+local RTTI_TYPE rttiTypes[rttiTypesTotal] <optimize=false>;
+
+string GetNameFromTypeHash(uint64 hash) {
+    local uint i;
+    for (i = 0; i < rttiTypesTotal; i++) {
+        if (rttiTypes[i].hash == hash) {
+            return rttiTypes[i].name;
+        }
+    }
+    return "UNSUPPORTED";
+}
+
+int GetSizeFromTypeHash(uint64 hash) {
+    local uint i;
+    for (i = 0; i < rttiTypesTotal; i++) {
+        if (rttiTypes[i].hash == hash) {
+            return rttiTypes[i].size;
+        }
+    }
+    return 0;
+}
+
+rttiTypes[ 0].hash = 0xa5e23de2a2657af9;
+rttiTypes[ 0].name = "CName";
+rttiTypes[ 0].size = 8;
+
+rttiTypes[ 1].hash = 0xf7bdd5a7c820889d;
+rttiTypes[ 1].name = "Bool";
+rttiTypes[ 1].size = 1;
+
+rttiTypes[ 2].hash = 0x20347ed17c005612;
+rttiTypes[ 2].name = "Int8";
+rttiTypes[ 2].size = 1;
+
+rttiTypes[ 3].hash = 0xb9a833f5b4ac54d1;
+rttiTypes[ 3].name = "Int16";
+rttiTypes[ 3].size = 2;
+
+rttiTypes[ 4].hash = 0xb9a127f5b4a621bf;
+rttiTypes[ 4].name = "Int32";
+rttiTypes[ 4].size = 4;
+
+rttiTypes[ 5].hash = 0xb9902ff5b497bc24;
+rttiTypes[ 5].name = "Int64";
+rttiTypes[ 5].size = 8;
+
+rttiTypes[ 6].hash = 0xf4ba668b63648a5b;
+rttiTypes[ 6].name = "Uint8";
+rttiTypes[ 6].size = 1;
+
+rttiTypes[ 7].hash = 0x3d2819d9e3bd4192;
+rttiTypes[ 7].name = "Uint16";
+rttiTypes[ 7].size = 2;
+
+rttiTypes[ 8].hash = 0x3d2e9dd9e3c28d8c;
+rttiTypes[ 8].name = "Uint32";
+rttiTypes[ 8].size = 4;
+
+rttiTypes[ 9].hash = 0x3d3f99d9e3d0f9f3;
+rttiTypes[ 9].name = "Uint64";
+rttiTypes[ 9].size = 8;
+
+rttiTypes[10].hash = 0xb64f4a0accc8a8c5;
+rttiTypes[10].name = "Float";
+rttiTypes[10].size = 4;
+
+rttiTypes[11].hash = 0x8e44d55a85b0b388;
+rttiTypes[11].name = "Double";
+rttiTypes[11].size = 8;
+
+rttiTypes[12].hash = 0x679f6b8bb9083ff0;
+rttiTypes[12].name = "Vector2";
+rttiTypes[12].size = 8;
+
+rttiTypes[13].hash = 0x679f6c8bb90841a3;
+rttiTypes[13].name = "Vector3";
+rttiTypes[13].size = 12;
+
+rttiTypes[14].hash = 0x679f718bb9084a22;
+rttiTypes[14].name = "Vector4";
+rttiTypes[14].size = 16;
+
+rttiTypes[15].hash = 0xf1c0252cffe275cd;
+rttiTypes[15].name = "Quaternion";
+rttiTypes[15].size = 16;
+
+rttiTypes[16].hash = 0x527459e8b7d4f756;
+rttiTypes[16].name = "EulerAngles";
+rttiTypes[16].size = 12;
+
+rttiTypes[17].hash = 0x1e20fdfd4739636f;
+rttiTypes[17].name = "CDateTime";
+rttiTypes[17].size = 8;
+
+rttiTypes[18].hash = 0x871e7aa7dab22613;
+rttiTypes[18].name = "CGUID";
+rttiTypes[18].size = 16;
+
+rttiTypes[19].hash = 0xbe26e7f8f954c1a2;
+rttiTypes[19].name = "CRUID";
+rttiTypes[19].size = 8;
+
+rttiTypes[20].hash = 0x13f73133634c4eeb;
+rttiTypes[20].name = "CRUIDRef";
+rttiTypes[20].size = 8;
+
+rttiTypes[21].hash = 0x833ff1a3bec555db;
+rttiTypes[21].name = "DataBuffer";
+rttiTypes[21].size = 40;
+
+rttiTypes[22].hash = 0xbceae1a21f624e62;
+rttiTypes[22].name = "EditorObjectID";
+rttiTypes[22].size = 32;
+
+rttiTypes[23].hash = 0x9c239c41f67bf509;
+rttiTypes[23].name = "LocalizationString";
+rttiTypes[23].size = 40;
+
+rttiTypes[24].hash = 0xb3fa440296ebaeef;
+rttiTypes[24].name = "MessageResourcePath";
+rttiTypes[24].size = 8;
+
+rttiTypes[25].hash = 0x8f51029a3253771a;
+rttiTypes[25].name = "NodeRef";
+rttiTypes[25].size = 8;
+
+rttiTypes[26].hash = 0x9bc4ceb8660fc809;
+rttiTypes[26].name = "RuntimeEntityRef";
+rttiTypes[26].size = 8;
+
+rttiTypes[27].hash = 0x4d44b430e1278eb6;
+rttiTypes[27].name = "SharedDataBuffer";
+rttiTypes[27].size = 8;
+
+rttiTypes[28].hash = 0x58b4b3ecd4eb6238;
+rttiTypes[28].name = "String";
+rttiTypes[28].size = 32;
+
+rttiTypes[29].hash = 0x4072151ff3dcf7bc;
+rttiTypes[29].name = "TweakDBID";
+rttiTypes[29].size = 8;
+
+rttiTypes[30].hash = 0xbcabce7030eb33c6;
+rttiTypes[30].name = "Variant";
+rttiTypes[30].size = 24;
+
+rttiTypes[31].hash = 0xc5527ad607d034ed;
+rttiTypes[31].name = "gamedataLocKeyWrapper";
+rttiTypes[31].size = 8;
+
+rttiTypes[32].hash = 0xaf78d916d59a1e5e;
+rttiTypes[32].name = "raRef:CResource";
+rttiTypes[32].size = 8;
+
+rttiTypes[33].hash = 0x272d3f5dbedec48c;
+rttiTypes[33].name = "array:Bool";
+rttiTypes[33].size = 16;
+
+rttiTypes[34].hash = 0x24d1e72a8bbe64d6;
+rttiTypes[34].name = "array:CName";
+rttiTypes[34].size = 16;
+
+rttiTypes[35].hash = 0x62d83e9927ac5caf;
+rttiTypes[35].name = "array:Int8";
+rttiTypes[35].size = 16;
+
+rttiTypes[36].hash = 0xa1e6e53e69f5cb46;
+rttiTypes[36].name = "array:Int16";
+rttiTypes[36].size = 16;
+
+rttiTypes[37].hash = 0xa1ed713e69fb24d8;
+rttiTypes[37].name = "array:Int32";
+rttiTypes[37].size = 16;
+
+rttiTypes[38].hash = 0x90f68483894352ec;
+rttiTypes[38].name = "array:Uint8";
+rttiTypes[38].size = 16;
+
+rttiTypes[39].hash = 0x965477823d7f87b3;
+rttiTypes[39].name = "array:Uint16";
+rttiTypes[39].size = 16;
+
+rttiTypes[40].hash = 0x965b8b823d85c85d;
+rttiTypes[40].name = "array:Uint32";
+rttiTypes[40].size = 16;
+
+rttiTypes[41].hash = 0x964a87823d774e5e;
+rttiTypes[41].name = "array:Uint64";
+rttiTypes[41].size = 16;
+
+rttiTypes[42].hash = 0xba0ef953a5018666;
+rttiTypes[42].name = "array:Float";
+rttiTypes[42].size = 16;
+
+rttiTypes[43].hash = 0x41cd1ba4a0d65089;
+rttiTypes[43].name = "array:Double";
+rttiTypes[43].size = 16;
+
+rttiTypes[44].hash = 0xdc6f7517bd4358d3;
+rttiTypes[44].name = "array:Vector2";
+rttiTypes[44].size = 16;
+
+rttiTypes[45].hash = 0xdc6f7417bd435720;
+rttiTypes[45].name = "array:Vector3";
+rttiTypes[45].size = 16;
+
+rttiTypes[46].hash = 0xdc6f7b17bd436305;
+rttiTypes[46].name = "array:Vector4";
+rttiTypes[46].size = 16;
+
+rttiTypes[47].hash = 0xcc7fcbfa7f587c5c;
+rttiTypes[47].name = "array:Quaternion";
+rttiTypes[47].size = 16;
+
+rttiTypes[48].hash = 0x91e86ab153877615;
+rttiTypes[48].name = "array:String";
+rttiTypes[48].size = 16;
+
+rttiTypes[49].hash = 0x82fd1dff5b425965;
+rttiTypes[49].name = "array:Variant";
+rttiTypes[49].size = 16;
+
+rttiTypes[50].hash = 0x2e57de748521342f;
+rttiTypes[50].name = "array:TweakDBID";
+rttiTypes[50].size = 16;
+
+rttiTypes[51].hash = 0xbf98c02523e2073d;
+rttiTypes[51].name = "array:raRef:CResource";
+rttiTypes[51].size = 16;

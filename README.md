@@ -5,4 +5,5 @@
 Still very work-in-progress, currently it can:
  - Read the header
  - Read the list of stored flat types and quantities
- - Read all the `string` flat values
+ - Read all the flat values and their lookup keys
+ - Read all of the record hashes and types

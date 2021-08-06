@@ -5,32 +5,83 @@
 //   Authors: flib
 //   Purpose: Helper functions for reading CP77 data
 //------------------------------------------------------------------------------
+ 
 
-int ReadLengthPrefix() {
-    local ubyte b1 = ReadUByte();
-    FSkip(1);
+// Returns the size of length-prefixed string, starting at the given address
+// - If includePrefix is greater than zero, then the returned size includes the
+//   the number of bytes read from the prefix.
+// - If consumeBytes is greater than zero, the FPos() will be advanced by the
+//   size of the prefix
+int ReadLengthPrefix(int64 startByte, ubyte includePrefix, ubyte consumeBytes) {
+    // Read the first byte
+    local ubyte b = ReadUByte(startByte);
+    // Stores the prefix size (in bytes)
+    local int64 prefixSize = 1;
+    // Stores the string size (in bytes)
+    local int64 stringSize = 0;
+    
+    if (b != 0x00 && b != 0x80) {
+        // Most significant bit: Should use wide charset?
+        // Currently being ignored as it's unused in TweakDB
+        local ubyte wide  = ~(b & 0b10000000);
+        // Next bit: does size exceed 6 bits?
+        local ubyte next  = b & 0b01000000;
+        // Offset in bits of next size value
+        // First byte uses the lower 6 bits
+        // Subsequent sizes are stored in the lower 7 bits
+        local int offset = 6;
 
-    if (b1 == 0x00 || b1 == 0x80)
-        return 0;
-
-    // Most significant bit: Should use wide charset
-    // Currently being ignored
-    local ubyte wide = ~(b1 & 0b10000000);
-    // Next bit: does size exceed 6bits
-    local ubyte next = b1 & 0b01000000;
-    local int   size = b1 & 0b00111111;
-    local int offset = 6;
-
-    local ubyte b = 0;
-
-    while (next > 0) {
-        b = ReadUByte();
-        FSkip(1);
-        next = b & 0b10000000;
-        size |= (b & 0b01111111) << offset;
-        offset += 7;
+        // Base size is stored in the lower 6 bits
+        stringSize = b & 0b00111111;
+    
+        while (next > 0) {
+            // Read the next byte
+            b = ReadUByte(startByte + prefixSize);
+            prefixSize++;
+            // Next bit: does remaining size exceed 7 bits?
+            next = b & 0b10000000;
+            // Increase the string size by the lower 7 bits, shifted up by offset
+            stringSize |= (b & 0b01111111) << offset;
+            // Increase the offset for the next size byte
+            offset += 7;
+        }
     }
 
-    return size;
+    if (consumeBytes > 0) {
+        FSkip(prefixSize);
+    }
+
+    return (includePrefix > 0) ? prefixSize + stringSize : stringSize;
 }
 
+
+
+string FormatInt32(string fmt, int32 i) {
+    local string s;
+    SPrintf(s, fmt, i);
+    return s;
+}
+
+string FormatUInt32(string fmt, uint32 i) {
+    local string s;
+    SPrintf(s, fmt, i);
+    return s;
+}
+
+string FormatInt64(string fmt, int64 i) {
+    local string s;
+    SPrintf(s, fmt, i);
+    return s;
+}
+
+string FormatUInt64(string fmt, uint64 i) {
+    local string s;
+    SPrintf(s, fmt, i);
+    return s;
+}
+
+string FormatFloat(string fmt, float f) {
+    local string s;
+    SPrintf(s, fmt, f);
+    return s;
+}

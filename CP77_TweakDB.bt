@@ -18,8 +18,448 @@ DisplayFormatDecimal();
 #include <CP77_RTTI_Types.bt>
 
 
+//------------------------------------------------------------------------------
+// TweakDBID
+// 64bit ID Hash to a record or a record flat (based on offset)
+// Hash is stored as a CRC32 hash of the record name
+
 typedef struct {
-    uint32  magic <format=hex>;
+    union {
+        uint64 hash <format=hex>;
+        struct {
+            uint32  nameHash <format=hex>;
+            ubyte   nameLength;
+            ubyte   offset[3];
+        } composite;
+    } id;
+} TWEAKDBID <read=TweakDBIDRead, size=8>;
+
+string TweakDBIDRead(TWEAKDBID &t) {
+    string buffer;
+    SPrintf(buffer, "<TDBID:%08X:%03d>", t.id.composite.nameHash, (int)t.id.composite.nameLength);
+    return buffer;
+}
+
+
+typedef struct {
+    TWEAKDBID id;
+    uint32 index;
+} TWEAKDBID_INDEX <name="TweakDB Key-Index",read=TweakDBIDIndexRead,size=12>;
+
+string TweakDBIDIndexRead(TWEAKDBID_INDEX &t) {
+    string buffer;
+    SPrintf(buffer, "%s -> %d", TweakDBIDRead(t.id), t.index);
+    return buffer;
+}
+
+
+typedef struct {
+    TWEAKDBID id;
+    uint32 schema;
+} TWEAKDBID_SCHEMA <name="TweakDB Record",read=TweakDBIDSchemaRead,size=12>;
+
+string TweakDBIDSchemaRead(TWEAKDBID_SCHEMA &t) {
+    string buffer;
+    SPrintf(buffer, "%s -> %08X", TweakDBIDRead(t.id), t.schema);
+    return buffer;
+}
+//------------------------------------------------------------------------------
+// Flat Type Declaration
+// Stored as a CName hash to a known RTTI type
+
+typedef struct {
+    uint64 typeHash <hidden=true>;
+    uint32 count <format=decimal>;
+
+    local string name = GetNameFromTypeHash(typeHash);
+    local int size    = GetSizeFromTypeHash(typeHash);
+} FLAT_TYPE <size=12,read=FlatTypeRead,name="Flat Type">;
+
+string FlatTypeRead(FLAT_TYPE &flats) { return flats.name; }
+
+
+//------------------------------------------------------------------------------
+// Flat Type: String
+
+typedef struct {
+    local int length = ReadLengthPrefix(startof(this), FALSE, TRUE);
+    if (length > 0) {
+        char str[length];
+    }
+} FLAT_TYPE_STRING <size=FlatTypeStringSize,read=FlatTypeStringRead,comment=FlatTypeStringComment>;
+
+int    FlatTypeStringSize(FLAT_TYPE_STRING &f)    { return ReadLengthPrefix(startof(f), TRUE, FALSE); }
+string FlatTypeStringRead(FLAT_TYPE_STRING &f)    { return f.length>0 ? f.str : ""; }
+string FlatTypeStringComment(FLAT_TYPE_STRING &f) { return f.length>0 ? "" : "Empty String"; }
+
+//------------------------------------------------------------------------------
+// Flat Type Helper: Generic Parameter data
+
+typedef struct {
+    FLAT_TYPE_STRING name <optimize=false>;
+    local uint hasData = (name.length > 0 && Strcmp(FlatTypeStringRead(name), "None"));
+    if (hasData) {
+        FLAT_TYPE_STRING type <optimize=false>;
+        uint32 unk; // Param flag? Size? Always seems to be 0x00000008
+        switch (FlatTypeStringRead(type)) {
+            case "Float":
+                float value;
+                break;
+            default:
+                Assert(0, "GENERIC_PARAM found an unsupported type");
+        }
+    }
+} GENERIC_PARAM <name=GenericParamName,read=GenericParamRead>;
+
+string GenericParamName(GENERIC_PARAM &p) { return FlatTypeStringRead(p.name); }
+string GenericParamRead(GENERIC_PARAM &p) {
+    if (p.hasData) {
+        switch (FlatTypeStringRead(p.type)) {
+            case "Float":
+                return FormatFloat("%f", p.value);
+                break;
+        }
+    }
+    return "";
+}
+
+
+//------------------------------------------------------------------------------
+// Flat Type: Quaternion
+
+typedef struct {
+    ubyte unk1; // Type flag?
+    
+    GENERIC_PARAM param[5] <optimize=false>;
+    
+} FLAT_TYPE_QUAT <size=70,read=FlatTypeQuatRead>;
+
+string FlatTypeQuatRead(FLAT_TYPE_QUAT &f) {
+    string buffer;
+    SPrint(buffer, "%f, %f, %f, %f", f.param[0].value, f.param[1].value, f.param[2].value, f.param[3].value);
+    return buffer;
+}
+
+//------------------------------------------------------------------------------
+// Flat Type: Euler Angles
+
+typedef struct {
+    ubyte unk1; // Type flag?
+    
+    GENERIC_PARAM param[4] <optimize=false>;
+    
+} FLAT_TYPE_EULER <size=63,name="EulerAngles",read=FlatTypeEulerRead>;
+
+string FlatTypeEulerRead(FLAT_TYPE_EULER &v) {
+    string buffer;
+    SPrintf(buffer, "%.1f,%.1f,%.1f", v.param[0].value, v.param[1].value, v.param[2].value);
+    return buffer;
+}
+
+//------------------------------------------------------------------------------
+// Flat Type: Vector2
+
+typedef struct {
+    ubyte unk1; // Type flag?
+    
+    GENERIC_PARAM param[3] <optimize=false>;
+    
+} FLAT_TYPE_VEC2 <size=38,name="Vector2",read=FlatTypeVec2Read>;
+
+string FlatTypeVec2Read(FLAT_TYPE_VEC2 &v) {
+    string buffer;
+    SPrintf(buffer, "%.1f,%.1f", v.param[0].value, v.param[1].value);
+    return buffer;
+}
+
+//------------------------------------------------------------------------------
+// Flat Type: Vector3
+
+typedef struct {
+    ubyte unk1; // Type flag?
+    
+    GENERIC_PARAM param[4] <optimize=false>;
+    
+} FLAT_TYPE_VEC3 <size=54,name="Vector3",read=FlatTypeVec3Read>;
+
+string FlatTypeVec3Read(FLAT_TYPE_VEC3 &v) {
+    string buffer;
+    SPrintf(buffer, "%.1f,%.1f,%.1f", v.param[0].value, v.param[1].value, v.param[2].value);
+    return buffer;
+}
+
+//------------------------------------------------------------------------------
+// Flat Type: Bool
+
+typedef struct {
+    ubyte value;
+} FLAT_TYPE_BOOL <size=1,name="Bool",read=FlatTypeBoolRead>;
+
+string FlatTypeBoolRead(FLAT_TYPE_BOOL &b) { return b.value ? "true" : "false"; }
+
+
+//------------------------------------------------------------------------------
+// Flat Type: Int32
+
+typedef struct {
+    int32 value;
+} FLAT_TYPE_INT32 <size=4,name="Int32",read=FlatTypeInt32Read>;
+
+string FlatTypeInt32Read(FLAT_TYPE_INT32 &i) { return FormatInt32("%d", i.value); }
+
+
+//------------------------------------------------------------------------------
+// Flat Type: Float
+
+typedef struct {
+    float value;
+} FLAT_TYPE_FLOAT <size=4,name="Float",read=FlatTypeFloatRead>;
+
+string FlatTypeFloatRead(FLAT_TYPE_FLOAT &f) { return FormatFloat("%.2f", f.value); }
+
+
+//------------------------------------------------------------------------------
+// Flat Type: raRef:CResource
+
+typedef struct {
+    uint64 refRes <format=hex>;
+} FLAT_TYPE_REF_RES <size=8,name="raRef:CResource",read=FlatTypeRefResRead>;
+
+string FlatTypeRefResRead(FLAT_TYPE_REF_RES &r) { return FormatUInt64("%LX", r.refRes); }
+
+
+//------------------------------------------------------------------------------
+// Flat Type: LocKeyWrapper
+
+typedef struct {
+    uint64 CNameHash <format=hex>;
+} FLAT_TYPE_LOC_KEY <size=8,name="LocKeyWrapper",read=FlatTypeLocKeyRead>;
+
+string FlatTypeLocKeyRead(FLAT_TYPE_LOC_KEY &l) { return FormatUInt64("%LX", l.CNameHash); }
+
+
+//------------------------------------------------------------------------------
+// Flat Type: Array<>
+
+typedef struct (string typeName) {
+    local string type = typeName;
+    int32 count;
+    
+    if (count > 0) {
+        switch (type) {
+            case "Bool":
+                FLAT_TYPE_BOOL value[count];
+                break;
+            case "Int32":
+                FLAT_TYPE_INT32 value[count];
+                break;
+            case "Float":
+                FLAT_TYPE_FLOAT value[count];
+                break;
+            case "Vector2":
+                FLAT_TYPE_VEC2 value[count] <optimize=false>;
+                break;
+            case "Vector3":
+                FLAT_TYPE_VEC3 value[count] <optimize=false>;
+                break;
+            case "CName":
+            case "String":
+                FLAT_TYPE_STRING value[count] <optimize=false>;
+                break;
+            case "TweakDBID":
+                TWEAKDBID value[count];
+                break;
+            case "raRef:CResource":
+                FLAT_TYPE_REF_RES value[count];
+                break;
+            default:
+                Assert(0, "FLAT_TYPE_ARRAY passed an unsupported type");
+        }
+    }
+} FLAT_TYPE_ARRAY <read=FlatTypeArrayRead>;
+
+string FlatTypeArrayRead(FLAT_TYPE_ARRAY &a) {
+    string output = FormatInt32("%d: [", a.count);
+
+    local int i;
+    for (i = 0; i < a.count; i++) {
+        if (i > 0) { output += ","; }
+        
+        switch (a.type) {
+            case "Bool":
+                output += FlatTypeBoolRead(a.value[i]);
+                break;
+            case "Int32":
+                output += FlatTypeInt32Read(a.value[i]);
+                break;
+            case "Float":
+                output += FlatTypeFloatRead(a.value[i]);
+                break;
+            case "Vector2":
+                output += "(" + FlatTypeVec2Read(a.value[i]) + ")";
+                break;
+            case "Vector3":
+                output += "(" + FlatTypeVec3Read(a.value[i]) + ")";
+                break;
+            case "CName":
+            case "String":
+                output += "\"" + FlatTypeStringRead(a.value[i]) + "\"";
+                break;
+            case "TweakDBID":
+                output += TweakDBIDRead(a.value[i]);
+                break;
+            case "raRef:CResource":
+                output += FlatTypeRefResRead(a.value[i]);
+                break;
+        }
+    }
+
+    return output + "]";
+}
+
+//------------------------------------------------------------------------------
+// Flat Dictionary
+
+typedef struct (FLAT_TYPE &type) {
+    local uint64 typeHash = type.typeHash;
+    local string typeName = type.name;
+    local int    typeSize = type.size;
+
+    struct FLAT_DICT_VALUES{
+        uint32 count;
+        local uint32 i = 0;
+   
+        switch (typeName) {
+            case "Bool":
+                FLAT_TYPE_BOOL value[count] <name="Bool",optimize=false>;
+                break;
+            case "Int32":
+                FLAT_TYPE_INT32 value[count] <name="Int32",optimize=false>;
+                break;
+            case "Float":
+                FLAT_TYPE_FLOAT value[count] <name="Float",optimize=false>;
+                break;
+            case "Quaternion":
+                FLAT_TYPE_QUAT value[count] <name="Quaternion",optimize=false>;
+                break;
+            case "EulerAngles":
+                FLAT_TYPE_EULER value[count] <name="EulerAngles",optimize=false>;
+                break;
+            case "Vector2":
+                FLAT_TYPE_VEC2 value[count] <name="Vector2",optimize=false>;
+                break;
+            case "Vector3":
+                FLAT_TYPE_VEC3 value[count] <name="Vector3",optimize=false>;
+                break;
+            case "TweakDBID":
+                TWEAKDBID value[count] <name="TweakDBID",optimize=false>;
+                break;
+            case "String":
+                FLAT_TYPE_STRING value[count] <name="String",optimize=false>;
+                break;
+            case "CName":
+                FLAT_TYPE_STRING value[count] <name="CName",optimize=false>;
+                break;
+            case "raRef:CResource":
+                FLAT_TYPE_REF_RES value[count] <name="raRef:CResource",optimize=false>;
+                break;
+            case "gamedataLocKeyWrapper":
+                FLAT_TYPE_LOC_KEY value[count] <name="gamedataLocKeyWrapper",optimize=false>;
+                break;
+
+            case "array:Bool":
+                FLAT_TYPE_ARRAY value("Bool")[count] <name="Array<Bool>",optimize=false>;
+                break;
+            case "array:Int32":
+                FLAT_TYPE_ARRAY value("Int32")[count] <name="Array<Int32>",optimize=false>;
+                break;
+            case "array:Float":
+                FLAT_TYPE_ARRAY value("Float")[count] <name="Array<Float>",optimize=false>;
+                break;
+            case "array:Vector2":
+                FLAT_TYPE_ARRAY value("Vector2")[count] <name="Array<Vector2>",optimize=false>;
+                break;
+            case "array:Vector3":
+                FLAT_TYPE_ARRAY value("Vector3")[count] <name="Array<Vector3>",optimize=false>;
+                break;
+            case "array:String":
+                FLAT_TYPE_ARRAY value("String")[count] <name="Array<String>",optimize=false>;
+                break;
+            case "array:CName":
+                FLAT_TYPE_ARRAY value("CName")[count] <name="Array<CName>",optimize=false>;
+                break;
+            case "array:TweakDBID":
+                FLAT_TYPE_ARRAY value("TweakDBID")[count] <name="Array<TweakDBID>",optimize=false>;
+                break;
+            case "array:raRef:CResource":
+                FLAT_TYPE_ARRAY value("raRef:CResource")[count] <name="Array<raRef:CResource>",optimize=false>;
+                break;
+            default:
+                Assert(0, "FLAT_DICT_VALUES passed an unsupported type");
+        }
+    } Values <name="Values",read=FlatDictValuesRead>;
+
+    struct FLAT_DICT_KEYS {
+        uint32 count;
+        TWEAKDBID_INDEX keys[count] <name="Key",optimize=false>;
+    } Keys <name="Keys",read=FlatDictKeysRead,size=FlatDictKeysSize>;
+
+} FLAT_DICT <name=FlatDictName,read=FlatDictRead>;
+
+string FlatDictValuesRead(FLAT_DICT_VALUES &v) { return FormatUInt32("%d", v.count); }
+string FlatDictKeysRead(FLAT_DICT_KEYS &k)     { return FormatUInt32("%d", k.count); }
+int    FlatDictKeysSize(FLAT_DICT_KEYS &k)     { return 4 + 12 * ReadUInt(startof(k)); }
+
+string FlatDictName(FLAT_DICT &flats) { return "FlatMap<" + flats.typeName + ">"; }
+string FlatDictRead(FLAT_DICT &flats) {
+    string buffer;
+    SPrintf(buffer, "Keys: %6u  |  Values: %6u", flats.Keys.count, flats.Values.count);
+    return buffer;
+}
+
+
+//------------------------------------------------------------------------------
+// Flat Dictionary collection
+
+typedef struct {
+    uint32 flatTypesCount;
+
+    struct {
+        FLAT_TYPE types[flatTypesCount] <optimize=false>;
+    } FlatTypes <name="Flat Types">;
+
+    local int i;
+    for(i = 0; i < flatTypesCount; i++) {
+        FLAT_DICT flats(FlatTypes.types[i]) <optimize=false>;
+    }
+
+} FLATS;
+
+
+//------------------------------------------------------------------------------
+// Record collection
+
+typedef struct {
+    uint32 recordCount;
+
+    TWEAKDBID_SCHEMA records[recordCount];
+} RECORDS;
+
+
+//------------------------------------------------------------------------------
+// Query collection
+
+typedef struct {
+    uint32 queryCount;
+
+} QUERIES;
+
+
+//------------------------------------------------------------------------------
+// Header format
+
+typedef struct {
+    uint32  magic <format=hex,comment="4 7DB B10B = A TDB BLOB">;
     uint32  blobVersion;
     uint32  parserVersion;
     uint32  recordsChecksum <format=hex>;
@@ -30,129 +470,18 @@ typedef struct {
     uint32  groupTagsOffset <format=hex>;
 } HEADER;
 
-typedef struct {
-    union {
-        uint64  value <format=hex>;
-        struct {
-            uint32  nameHash <format=hex>;
-            ubyte   nameLength;
-            ubyte   offset[3];
-        } composite;
-    } id;
-} TWEAKDBID;
-
-
-
-typedef struct {
-    uint64 typeHash <hidden=true>;
-    uint32 count <format=decimal>;
-
-    local string name = GetNameFromTypeHash(typeHash);
-    local int size    = GetSizeFromTypeHash(typeHash);
-} FLAT_TYPE <read=FlatTypeName, name="Flat Type">;
-
-string FlatTypeName(FLAT_TYPE &flats) {
-    local char buffer[256];
-    SPrintf(buffer, "%s [%d]", flats.name, flats.count);
-    return buffer;
-}
-
-
-typedef struct {
-    local int length = ReadLengthPrefix();
-    char str[length];
-} FLAT_TYPE_STRING <read=FlatTypeStringName>;
-    string FlatTypeStringName(FLAT_TYPE_STRING &f) { return f.str; }
-
-typedef struct (FLAT_TYPE &type) {
-    local uint64 typeHash = type.typeHash;
-    local string typeName = type.name;
-    local int    typeSize = type.size;
-
-    uint32 count <format=decimal>;
-    local uint32 i = 0;
-
-    for (i = 0; i < count; i++) {
-        switch (typeName) {
-            case "String":
-                FLAT_TYPE_STRING value <name="String">;
-                break;
-            default:
-                Exit(0);
-        }
-    }
-
-} FLAT_VALUES <read=FlatValuesName, name="Flat Values">;
-
-string FlatValuesName(FLAT_VALUES &flats) {
-    local char buffer[256];
-    SPrintf(buffer, "%s [%d]", flats.typeName, flats.count);
-    return buffer;
-}
-
-
-typedef struct {
-    uint32 flatTypesCount;
-
-    struct {
-        FLAT_TYPE types[flatTypesCount] <optimize=false>;
-    } FlatTypes;
-
-    local int i;
-    for(i = 0; i < flatTypesCount; i++) {
-        FLAT_VALUES flats(FlatTypes.types[i]) <optimize=false>;
-    }
-
-
-    // [0] Flat Values: count=13322
-    // 13322 = 0x0000340A @ offset  0:002C
-    // Strings
-    // [0] Flat Keys: count=80120
-    // 80120 = F8 38 01 00 @ offset  5:7D74
-
-
-    // [1] Flat Values: count=36
-    //    36 = 24 00 00 00
-    // Quaternions
-    // [1] Flat Keys: count=36
-    //    36 = 24 00 00 00
-
-
-    // [2] Flat Values: count=54
-    //    54 = 36 00 00 00
-    // array:Bool
-    // [2] Flat Keys: count=6371
-    //  6371 = E3 18 00 00 @ offset 12:DA70
-
-
-    // [3] Flat Values: count=5381
-    //  5381 = 05 15 00 00 @ offset 14:08A4
-    // array:CName (tags mostly)
-    // [3] Flat Keys: count=58296
-    // 58296 = B8 E3 00 00 @ offset 1A:D8EA
-
-
-    // [4] Flat Values: count=3179
-    //  3179 = 6B 0C 00 00 @ offset ?
-    // array:Int32
-    // [4] Flat Keys: count=8372
-    //  8372 = B4 20 00 00
-
-
-    // [5] Flat Values: count=806
-    //   806 = 26 03 00 00
-    // array:raRef:CResource
-    // [5] Flat Keys: count=14820
-
-
-} FLATS;
-
-
-
+//------------------------------------------------------------------------------
+// TweakDB binary file structure
 
 struct {
     HEADER header;
 
-    FSeek(startof(this)+header.flatsOffset);
+    Assert(FTell() == header.flatsOffset, "");
     FLATS flats;
+
+    Assert(FTell() == header.recordsOffset, "");
+    RECORDS records;
+
+    Assert(FTell() == header.queriesOffset, "");
+    QUERIES queries;
 } TweakDB;

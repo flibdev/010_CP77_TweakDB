@@ -497,6 +497,8 @@ string GroupTagsRead(GROUP_TAGS &gt) { return FormatUInt32("Group Tags: %4d", gt
 
 typedef struct {
     uint32  magic <format=hex,comment="4 7DB B10B = A TDB BLOB">;
+    Assert(magic == 0x0BB1DB47, "Incorrect header magic");
+
     uint32  blobVersion;
     uint32  parserVersion;
     uint32  recordsChecksum <format=hex>;
@@ -513,15 +515,15 @@ typedef struct {
 struct {
     HEADER header <name="Header">;
 
-    Assert(FTell() == header.flatsOffset, "");
+    Assert(FTell() == header.flatsOffset, "Flats starting at incorrect offset");
     FLATS flats <name="Flats">;
 
-    Assert(FTell() == header.recordsOffset, "");
+    Assert(FTell() == header.recordsOffset, "Records starting at incorrect offset");
     RECORDS records <name="Records">;
 
-    Assert(FTell() == header.queriesOffset, "");
+    Assert(FTell() == header.queriesOffset, "Queries starting at incorrect offset");
     QUERIES queries <name="Queries">;
 
-    Assert(FTell() == header.groupTagsOffset, "");
+    Assert(FTell() == header.groupTagsOffset, "Group Tags starting at incorrect offset");
     GROUP_TAGS groupTags <name="Group Tags">;
 } TweakDB;

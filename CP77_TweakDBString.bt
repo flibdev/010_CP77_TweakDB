@@ -13,32 +13,41 @@
 
 #include "CP77_Helpers.bt"
 
+//------------------------------------------------------------------------------
+// Length-prefixed string
+
 typedef struct {
-    local int length = ReadLengthPrefix();
-    char str[length] <optimize=false>;
-    //local string tdbid = HashNameStr(str);
-} CD77_STRING <read=CP77_STRING_Name,comment=CP77_STRING_TDBID>;
-    string CP77_STRING_Name(CD77_STRING &f)  { return f.str; }
-    string CP77_STRING_TDBID(CD77_STRING &f) { return HashNameStr(f.str); }
+    local int length = ReadLengthPrefix(startof(this), FALSE, TRUE);
+    if (length > 0) {
+        char str[length];
+    }
+} CP77_STRING <size=CP77_STRING_Size,read=CP77_STRING_Read>;
+
+int    CP77_STRING_Size(CP77_STRING &cps)  { return ReadLengthPrefix(startof(cps), TRUE, FALSE); }
+string CP77_STRING_Read(CP77_STRING &cps)  { return (cps.length > 0) ? cps.str : ""; }
+
+//------------------------------------------------------------------------------
+
 
 struct {
     uint32 magic <format=hex,comment="5 7DB B10B = S(tring) TDB BLOB">;
+    Assert(magic == 0x0BB1DB57, "Incorrect header magic");
     uint32 version;
     uint32 records;
     uint32 flats;
     uint32 queries;
 
     struct {
-        CD77_STRING record[records] <optimize=false>;
+        CP77_STRING record[records] <optimize=false>;
     } RECORDS;
-/*
+
     struct {
-        CD77_STRING flats[flats] <optimize=false>;
+        CP77_STRING flat[flats] <optimize=false>;
     } FLATS;
 
     struct {
-        CD77_STRING query[queries] <optimize=false>;
+        CP77_STRING query[queries] <optimize=false>;
     } QUERIES;
-*/
+
 } TWEAKDB_STR;
 

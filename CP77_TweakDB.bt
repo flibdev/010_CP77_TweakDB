@@ -100,7 +100,7 @@ typedef struct {
     local uint hasData = (name.length > 0 && Strcmp(FlatTypeStringRead(name), "None"));
     if (hasData) {
         FLAT_TYPE_STRING type <optimize=false>;
-        uint32 unk; // Param flag? Size? Always seems to be 0x00000008
+        uint32 unk; // Param flag? Offset to next param? Always seems to be 0x00000008
         switch (FlatTypeStringRead(type)) {
             case "Float":
                 float value;
@@ -422,7 +422,7 @@ string FlatDictRead(FLAT_DICT &flats) {
 // Flat Dictionary collection
 
 typedef struct {
-    uint32 flatTypesCount;
+    uint32 flatTypesCount <hidden=true>;
 
     struct {
         FLAT_TYPE types[flatTypesCount] <optimize=false>;
@@ -433,27 +433,64 @@ typedef struct {
         FLAT_DICT flats(FlatTypes.types[i]) <optimize=false>;
     }
 
-} FLATS;
+} FLATS <read=FlatsRead>;
 
+string FlatsRead(FLATS &f) { return FormatUInt32("Flat Types: %4d", f.flatTypesCount); }
 
 //------------------------------------------------------------------------------
 // Record collection
 
 typedef struct {
-    uint32 recordCount;
+    uint32 count <hidden=true>;
 
-    TWEAKDBID_SCHEMA records[recordCount];
-} RECORDS;
+    TWEAKDBID_SCHEMA records[count];
+} RECORDS <read=RecordsRead>;
 
+string RecordsRead(RECORDS &r) { return FormatUInt32("Records: %7d", r.count); }
 
 //------------------------------------------------------------------------------
 // Query collection
 
 typedef struct {
-    uint32 queryCount;
+    TWEAKDBID name;
+    uint32 count;
+    TWEAKDBID results[count] <optimize=false>;
+} QUERY <read=QueryRead>;
 
-} QUERIES;
+string QueryRead(QUERY &q)     { return FormatUInt32("Records: %4d", q.count); }
 
+
+typedef struct {
+    uint32 count <hidden=true>;
+    QUERY queries[count] <optimize=false>;
+} QUERIES <read=QueriesRead>;
+
+string QueriesRead(QUERIES &q) { return FormatUInt32("Queries: %7d", q.count); }
+
+
+//------------------------------------------------------------------------------
+// Group Tag
+
+typedef struct {
+    TWEAKDBID name;
+    ubyte value;
+} GROUP_TAG <size=9,read=GroupTagRead>;
+
+string GroupTagRead(GROUP_TAG &gt) {
+    string buffer;
+    SPrintf(buffer, "%s -> %X", TweakDBIDRead(gt.name), (uint32)gt.value);
+    return buffer;
+}
+
+//------------------------------------------------------------------------------
+// Group Tag collection
+
+typedef struct {
+    uint32 count <hidden=true>;
+    GROUP_TAG tags[count] <optimize=false>;
+} GROUP_TAGS <read=GroupTagsRead>;
+
+string GroupTagsRead(GROUP_TAGS &gt) { return FormatUInt32("Group Tags: %4d", gt.count); }
 
 //------------------------------------------------------------------------------
 // Header format
@@ -474,14 +511,17 @@ typedef struct {
 // TweakDB binary file structure
 
 struct {
-    HEADER header;
+    HEADER header <name="Header">;
 
     Assert(FTell() == header.flatsOffset, "");
-    FLATS flats;
+    FLATS flats <name="Flats">;
 
     Assert(FTell() == header.recordsOffset, "");
-    RECORDS records;
+    RECORDS records <name="Records">;
 
     Assert(FTell() == header.queriesOffset, "");
-    QUERIES queries;
+    QUERIES queries <name="Queries">;
+
+    Assert(FTell() == header.groupTagsOffset, "");
+    GROUP_TAGS groupTags <name="Group Tags">;
 } TweakDB;

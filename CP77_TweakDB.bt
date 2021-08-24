@@ -232,10 +232,10 @@ string FlatTypeRefResRead(FLAT_TYPE_REF_RES &r) { return FormatUInt64("%LX", r.r
 // Flat Type: LocKeyWrapper
 
 typedef struct {
-    uint64 CNameHash <format=hex>;
+    uint64 LocKey <format=hex>;
 } FLAT_TYPE_LOC_KEY <size=8,name="LocKeyWrapper",read=FlatTypeLocKeyRead>;
 
-string FlatTypeLocKeyRead(FLAT_TYPE_LOC_KEY &l) { return FormatUInt64("%LX", l.CNameHash); }
+string FlatTypeLocKeyRead(FLAT_TYPE_LOC_KEY &l) { return FormatUInt64("%LX", l.LocKey); }
 
 
 //------------------------------------------------------------------------------

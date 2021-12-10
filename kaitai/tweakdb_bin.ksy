@@ -3,6 +3,8 @@ meta:
   endian: le
   title: Cyberpunk 2077 TweakDB binary cache format
   file-extension: bin
+  imports:
+    - vlq_string
 
 doc: |
   tweakdb.bin is the serialized binary format for TweakDB,
@@ -37,6 +39,7 @@ types:
         doc: This schema only supports blob version 5
       - id: parser_version
         type: u4
+        contents: [0x04]
         doc: This schema only supports parser version 4
       - id: records_checksum
         type: u4
@@ -141,13 +144,13 @@ types:
   flat_type_string:
     seq:
       - id: values
-        type: length_prefixed_string
+        type: vlq_string
 
   flat_type_resref:
     seq:
       - id: value
         type: u8
-        doc: CName hash to an archive resource
+        doc: ResRef hash to an archive resource
 
   flat_type_lockey:
     seq:
@@ -160,7 +163,7 @@ types:
   flat_type_tweakdbid:
     seq:
       - id: value
-        type:
+        type: u8
 
   flat_type_vector2:
     seq:
@@ -188,19 +191,22 @@ types:
       - id: values
         type:
 
-
-
-  length_prefixed_string:
-    doc: |
-      CDPR use a length-prefixed string
+  generic_param:
     seq:
-      - id: len_prefix
-        type: u1
-        doc: |
-          The first byte 
-    instances:
-      has_wide_chars:
-        value: len_prefix & 0b1000_0000
+      - id: name
+        type: vlq_string
+      - id: value
+        type: generic_param_val
+        if: name.length > 0 && name.value != "None"
+
+  generic_param_val:
+    seq:
+      - id: type
+        type: vlq_string
+      - id: skip_size
+        type: u4
+      - id: data
+        size: skip_size - 4
 
 enums:
   flat_types:
@@ -216,7 +222,6 @@ enums:
     0x679f6c8bb90841a3: vector3
     0xf1c0252cffe275cd: quaternion
     0x527459e8b7d4f756: euler_angles
-
     0x272d3f5dbedec48c: array_bool
     0xa1ed713e69fb24d8: array_int32
     0xba0ef953a5018666: array_float

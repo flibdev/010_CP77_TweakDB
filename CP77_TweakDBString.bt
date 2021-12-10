@@ -1,12 +1,12 @@
 //------------------------------------------------
 //--- 010 Editor v11.0.1 Binary Template
 //
-//      File: 
-//   Authors: 
-//   Version: 
-//   Purpose: 
-//  Category: 
-// File Mask: 
+//      File: CP77_TweakDBString.bt
+//   Authors: flib
+//   Version: 0.1
+//   Purpose: For reading the Cyberpunk 2077 TweakDB string dump
+//  Category: Modding
+// File Mask: tweakdb.str
 //  ID Bytes: 57 DB B1 0B
 //   History: 
 //------------------------------------------------
@@ -19,7 +19,7 @@
 typedef struct {
     local int length = ReadLengthPrefix(startof(this), FALSE, TRUE);
     if (length > 0) {
-        char str[length];
+        char str[length] <open=suppress>;
     }
 } CP77_STRING <size=CP77_STRING_Size,read=CP77_STRING_Read>;
 

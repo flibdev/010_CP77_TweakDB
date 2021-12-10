@@ -36,7 +36,7 @@ typedef struct {
 
 string TweakDBIDRead(TWEAKDBID &t) {
     string buffer;
-    SPrintf(buffer, "<TDBID:%08X:%03d>", t.id.composite.nameHash, (int)t.id.composite.nameLength);
+    SPrintf(buffer, "<TDBID:%08X:%02X>", t.id.composite.nameHash, (int)t.id.composite.nameLength);
     return buffer;
 }
 
@@ -84,7 +84,7 @@ string FlatTypeRead(FLAT_TYPE &flats) { return flats.name; }
 typedef struct {
     local int length = ReadLengthPrefix(startof(this), FALSE, TRUE);
     if (length > 0) {
-        char str[length];
+        char str[length] <open=suppress>;
     }
 } FLAT_TYPE_STRING <size=FlatTypeStringSize,read=FlatTypeStringRead,comment=FlatTypeStringComment>;
 
@@ -225,7 +225,7 @@ typedef struct {
     uint64 refRes <format=hex>;
 } FLAT_TYPE_REF_RES <size=8,name="raRef:CResource",read=FlatTypeRefResRead>;
 
-string FlatTypeRefResRead(FLAT_TYPE_REF_RES &r) { return FormatUInt64("%LX", r.refRes); }
+string FlatTypeRefResRead(FLAT_TYPE_REF_RES &r) { return FormatUInt64("0x%016LX", r.refRes); }
 
 
 //------------------------------------------------------------------------------
@@ -235,7 +235,7 @@ typedef struct {
     uint64 LocKey <format=hex>;
 } FLAT_TYPE_LOC_KEY <size=8,name="LocKeyWrapper",read=FlatTypeLocKeyRead>;
 
-string FlatTypeLocKeyRead(FLAT_TYPE_LOC_KEY &l) { return FormatUInt64("%LX", l.LocKey); }
+string FlatTypeLocKeyRead(FLAT_TYPE_LOC_KEY &l) { return FormatUInt64("0x%LX", l.LocKey); }
 
 
 //------------------------------------------------------------------------------
